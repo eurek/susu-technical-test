@@ -39,3 +39,10 @@ class Transaction(BaseModel):
 class TransactionRow(Row, Transaction):
     user_id: int
     state: TransactionState
+
+
+class SubscriptionTransaction(Row):
+    amount: float
+    coverage_amount: float
+    date: date
+    rate_coverage_amount: float

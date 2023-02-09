@@ -4,7 +4,10 @@ from fastapi import FastAPI, HTTPException
 
 from backend.db import InMemoryDB
 from backend.logic import transactions, users
-from backend.models import Transaction, TransactionRow
+from backend.models import SubscriptionTransaction, Transaction, TransactionRow
+from backend.serializers.subscription_transactions_serializer import (
+    SubscriptionTransactionsSerializer,
+)
 
 app = FastAPI()
 
@@ -21,6 +24,16 @@ async def root():
 async def get_transactions(user_id: int) -> List[TransactionRow]:
     """Returns all transactions for a user."""
     return transactions.transactions(db, user_id)
+
+
+@app.get("/users/{user_id}/transactions/balance")
+async def get_balance(
+    user_id: int,
+) -> List[SubscriptionTransaction]:  # pylint: disable=unused-argument
+    """Computes the balance of payments for a user subscription."""
+    if users.user(db, user_id) is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return SubscriptionTransactionsSerializer(db, user_id).call()
 
 
 @app.get(
@@ -40,10 +53,3 @@ async def get_transaction(user_id: int, transaction_id: int) -> TransactionRow:
 async def create_transaction(user_id: int, transaction: Transaction) -> TransactionRow:
     """Adds a new transaction to the list of user transactions."""
     return transactions.create_transaction(db, user_id, transaction)
-
-
-@app.get("/users/{user_id}/transactions/balance")
-async def get_balance(user_id: int) -> Any:  # pylint: disable=unused-argument
-    """Computes the balance of payments for a user subscription."""
-    # We expect you to write this function
-    return None

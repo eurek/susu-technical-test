@@ -1,5 +1,10 @@
 from typing import List
 
+from backend.helpers.transactions import (
+    is_completed_deposit,
+    is_completed_scheduled_withdrawal,
+    is_refund,
+)
 from backend.models import (
     Transaction,
     TransactionRow,
@@ -7,6 +12,23 @@ from backend.models import (
     TransactionType,
 )
 from backend.models.interfaces import Database
+
+
+def get_current_balance(db: Database, user_id: int) -> float:
+    """
+    Returns the balance of a user.
+    """
+    balance: int = 0
+
+    for transaction in db.scan("transactions"):
+        if transaction.user_id != user_id:
+            continue
+
+        if is_completed_deposit(transaction):
+            balance += transaction.amount
+        elif is_refund(transaction) or is_completed_scheduled_withdrawal(transaction):
+            balance -= transaction.amount
+    return balance
 
 
 def transactions(db: Database, user_id: int) -> List[TransactionRow]:
@@ -28,7 +50,9 @@ def transaction(db: Database, user_id: int, transaction_id: int) -> TransactionR
     return transaction if transaction and transaction.user_id == user_id else None
 
 
-def create_transaction(db: Database, user_id: int, transaction: Transaction) -> TransactionRow:
+def create_transaction(
+    db: Database, user_id: int, transaction: Transaction
+) -> TransactionRow:
     """
     Creates a new transaction (adds an ID) and returns it.
     """
